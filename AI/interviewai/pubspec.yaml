@@ -1,0 +1,55 @@
+name: interviewai
+description: "AI 면접 코치 — 음성 기반 실전 면접 시뮬레이션 앱"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # 상태관리
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # 라우팅
+  go_router: ^15.1.2
+
+  # 네트워크
+  dio: ^5.8.0+1
+
+  # 음성
+  flutter_sound: ^9.2.13
+  flutter_tts: ^4.2.2
+  permission_handler: ^11.4.0
+
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.2
+  cloud_firestore: ^5.6.6
+  google_sign_in: ^6.2.2
+
+  # UI
+  fl_chart: ^0.70.2
+
+  # 유틸
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+  uuid: ^4.5.1
+  intl: ^0.20.2
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.15
+  freezed: ^2.5.7
+  json_serializable: ^6.9.4
+  riverpod_generator: ^2.6.3
+
+flutter:
+  uses-material-design: true
