@@ -11,6 +11,7 @@ import '../../../shared/constants/question_bank.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../../feedback/models/feedback_model.dart';
 import '../repositories/session_repository.dart';
+import '../../../core/services/streak_service.dart';
 
 enum _InterviewState { ready, speaking, recording, processing, done }
 
@@ -153,6 +154,7 @@ class _InterviewScreenState extends State<InterviewScreen> {
   }
 
   Future<void> _saveSession() async {
+    await StreakService().recordToday();
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;

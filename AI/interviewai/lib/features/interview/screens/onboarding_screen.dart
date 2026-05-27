@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/services/streak_service.dart';
 import '../../../shared/theme/app_theme.dart';
 
 const _countOptions = [3, 5, 7, 10];
@@ -58,6 +59,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _focusNode = FocusNode();
   String _selectedType = 'technical';
   int _questionCount = 5;
+  StreakData? _streak;
 
   bool get _canStart => _jobController.text.trim().isNotEmpty;
 
@@ -65,6 +67,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void initState() {
     super.initState();
     _jobController.addListener(() => setState(() {}));
+    StreakService().load().then((s) {
+      if (mounted) setState(() => _streak = s);
+    });
   }
 
   @override
@@ -98,6 +103,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
                   child: Row(
                     children: [
+                      if (_streak != null && _streak!.current > 0)
+                        _StreakBadge(streak: _streak!),
                       const Spacer(),
                       IconButton(
                         icon: const Icon(Icons.history_rounded),
@@ -570,6 +577,38 @@ class _StartButton extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      );
+}
+
+// ── 스트릭 뱃지 ───────────────────────────────────────────────
+
+class _StreakBadge extends StatelessWidget {
+  final StreakData streak;
+  const _StreakBadge({required this.streak});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF7ED),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFFED7AA)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🔥', style: TextStyle(fontSize: 14)),
+            const SizedBox(width: 4),
+            Text(
+              '${streak.current}일 연속',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFFEA580C),
+              ),
+            ),
+          ],
         ),
       );
 }
