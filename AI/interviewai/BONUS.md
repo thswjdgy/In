@@ -17,9 +17,9 @@ Tracks bonus features and Week 5–7 course requirement compliance.
 
 ### Week 7 — Sub-Agents & MCP
 - [x] `AGENTS.md` — 3 sub-agents defined (code-bug-analyzer, performance-optimizer, ux-design-advisor)
-- [ ] MCP: Notion MCP server installation
-- [ ] MCP: Sequential Thinking MCP server installation
-- [ ] MCP: Context7 MCP server (for Flutter/Dart docs lookup)
+- [x] MCP: Notion MCP server — `.claude/mcp_config.json` (replace YOUR_NOTION_TOKEN)
+- [x] MCP: Sequential Thinking MCP server — `.claude/mcp_config.json`
+- [x] MCP: Context7 MCP server (Flutter/Dart docs) — `.claude/mcp_config.json`
 
 ## MCP Setup Instructions
 
@@ -73,21 +73,23 @@ or: `.claude/mcp_config.json` (project-level)
 - [x] Animated pulsing mic during recording
 - [x] Linear progress indicator across questions
 - [x] Score color coding (green ≥80 / amber ≥60 / red <60)
+- [x] **Streak tracking** — daily practice streak with SharedPreferences (🔥 badge on home screen)
+- [x] **Result sharing** — copy formatted result text to clipboard
+- [x] **Firebase History** — sessions saved to Firestore with score trends + weakness tags
+- [x] **Analytics** — weak area tags sorted by frequency on history screen
+- [x] **Example answer** — STAR 답변 구조 힌트 바텀시트 (FeedbackScreen)
+- [x] **Radar chart** — 5축 역량 분석 (STAR구조/구체성/논리성/전문성/자신감) in SessionDetailScreen
 
-### Planned (Step 2–4)
-- [ ] **Pronunciation guide** — show phonetics for technical terms (e.g., REST, CI/CD)
-- [ ] **Example answer** — show a model answer after feedback
-- [ ] **Streak tracking** — daily practice streak with local storage
-- [ ] **Custom questions** — let users add their own questions
-- [ ] **Export PDF** — share feedback as a PDF report
-- [ ] **Firebase History** — save all sessions to Firestore (Step 3)
-- [ ] **Analytics** — track most-missed question types (Step 4)
+### Won't Implement (범위 외)
+- Pronunciation guide — technical term phonetics
+- Custom questions — user-defined question bank
+- Export PDF — feedback as PDF report
 
 ## Step Roadmap
 
 | Step | Theme | Status |
 |---|---|---|
 | 1 | 핵심 기능 구현 (음성 인터뷰 루프) | ✅ Done |
-| 2 | UI 개선 및 카테고리 확장 | 🚧 In Progress |
-| 3 | Firebase 인증 + Firestore 기록 | ⏳ Pending |
-| 4 | 분석, 공유, Play Store 출시 준비 | ⏳ Pending |
+| 2 | UI 개선 및 카테고리 확장 | ✅ Done |
+| 3 | Firebase 인증 + Firestore 기록 | ✅ Done |
+| 4 | 분석, 공유, Play Store 출시 준비 | 🚧 In Progress |

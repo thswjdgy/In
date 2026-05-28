@@ -111,6 +111,8 @@ class FeedbackScreen extends StatelessWidget {
                   ),
                 ),
               ],
+              const SizedBox(height: 12),
+              _HintButton(question: question, improvements: feedback.improvements),
               const SizedBox(height: 28),
               if (isLast) ...[
                 _ActionButton(
@@ -373,6 +375,228 @@ class _BulletItem extends StatelessWidget {
                   height: 1.5,
                   color: Color(0xFF334155),
                 ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+// ── 모범 답변 힌트 ────────────────────────────────────────────
+
+class _HintButton extends StatelessWidget {
+  final String question;
+  final List<String> improvements;
+
+  const _HintButton({required this.question, required this.improvements});
+
+  void _show(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ModelAnswerSheet(
+        question: question,
+        improvements: improvements,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => OutlinedButton.icon(
+        onPressed: () => _show(context),
+        icon: const Icon(Icons.tips_and_updates_rounded, size: 16),
+        label: const Text('모범 답변 구조 보기'),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(double.infinity, 46),
+          side: BorderSide(color: AppTheme.primary.withValues(alpha: 0.4)),
+          foregroundColor: AppTheme.primary,
+        ),
+      );
+}
+
+class _ModelAnswerSheet extends StatelessWidget {
+  final String question;
+  final List<String> improvements;
+
+  const _ModelAnswerSheet({required this.question, required this.improvements});
+
+  static const _steps = [
+    ('S', 'Situation', '관련 상황이나 배경을 구체적으로 설명하세요.'),
+    ('T', 'Task', '당신의 역할과 해결해야 할 과제를 명확히 하세요.'),
+    ('A', 'Action', '어떤 행동을 취했는지 단계별로 설명하세요.'),
+    ('R', 'Result', '행동의 결과와 배운 점을 수치로 표현하면 좋습니다.'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => DraggableScrollableSheet(
+        initialChildSize: 0.65,
+        maxChildSize: 0.9,
+        minChildSize: 0.4,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCBD5E1),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: controller,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.tips_and_updates_rounded,
+                            color: AppTheme.primary, size: 18),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'STAR 답변 구조',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      question,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 16),
+                    ..._steps.map((s) => _StarStep(
+                          letter: s.$1,
+                          title: s.$2,
+                          guide: s.$3,
+                        )),
+                    if (improvements.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.lightbulb_rounded,
+                                    size: 14, color: Color(0xFFF59E0B)),
+                                SizedBox(width: 6),
+                                Text(
+                                  '이번 답변에서 보완하면 좋을 점',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFFF59E0B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ...improvements.map((imp) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    '• $imp',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      height: 1.5,
+                                      color: Color(0xFF78350F),
+                                    ),
+                                  ),
+                                )),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _StarStep extends StatelessWidget {
+  final String letter;
+  final String title;
+  final String guide;
+
+  const _StarStep({
+    required this.letter,
+    required this.title,
+    required this.guide,
+  });
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  letter,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primary,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    guide,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

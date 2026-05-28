@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../feedback/models/feedback_model.dart';
 import '../../../shared/theme/app_theme.dart';
@@ -189,6 +190,24 @@ class ResultScreen extends StatelessWidget {
         ),
       );
 
+  String _buildShareText() {
+    final avg = _avgScore;
+    final lines = StringBuffer();
+    lines.writeln('📋 InterviewAI 면접 결과');
+    lines.writeln('직종: $job  |  평균 점수: $avg점');
+    lines.writeln('');
+    for (final r in results) {
+      final fb = r['feedback'] as FeedbackModel;
+      lines.writeln('Q. ${r['question']}');
+      lines.writeln('  점수: ${fb.score}점');
+      if (fb.strengths.isNotEmpty) lines.writeln('  ✅ ${fb.strengths.first}');
+      if (fb.improvements.isNotEmpty) lines.writeln('  💡 ${fb.improvements.first}');
+      lines.writeln('');
+    }
+    lines.write('#InterviewAI #면접준비 #AI면접코치');
+    return lines.toString();
+  }
+
   Widget _buildButtons(BuildContext context) => Column(
         children: [
           GestureDetector(
@@ -225,7 +244,25 @@ class ResultScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: _buildShareText()));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('클립보드에 복사됐어요')),
+                );
+              }
+            },
+            icon: const Icon(Icons.ios_share_rounded),
+            label: const Text('결과 공유하기'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 52),
+              side: const BorderSide(color: Color(0xFFE2E8F0)),
+              foregroundColor: AppTheme.primary,
+            ),
+          ),
+          const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: () => context.push('/history'),
             icon: const Icon(Icons.history_rounded),

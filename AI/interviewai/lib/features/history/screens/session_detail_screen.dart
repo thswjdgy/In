@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import '../../interview/repositories/session_repository.dart';
 import '../../interview/models/session_model.dart';
@@ -51,6 +52,8 @@ class SessionDetailScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       _ScoreCard(score: score, count: results.length),
+                      const SizedBox(height: 12),
+                      _RadarCard(results: results),
                       const SizedBox(height: 16),
                       Align(
                         alignment: Alignment.centerLeft,
@@ -177,6 +180,114 @@ class _ScoreCard extends StatelessWidget {
           ],
         ),
       );
+}
+
+class _RadarCard extends StatelessWidget {
+  final List<QuestionResult> results;
+  const _RadarCard({required this.results});
+
+  static const _labels = ['STAR구조', '구체성', '논리성', '전문성', '자신감'];
+
+  List<double> get _scores {
+    if (results.isEmpty) return [50, 50, 50, 50, 50];
+    final avg = results.map((r) => r.feedback.score).reduce((a, b) => a + b) /
+        results.length;
+    final imp =
+        results.expand((r) => r.feedback.improvements).join(' ').toLowerCase();
+    final str =
+        results.expand((r) => r.feedback.strengths).join(' ').toLowerCase();
+
+    double star = avg +
+        (str.contains('구조') || str.contains('star') ? 6 : 0) -
+        (imp.contains('구조') || imp.contains('상황') ? 10 : 0);
+    double spec = avg +
+        (str.contains('구체') || str.contains('수치') ? 8 : 0) -
+        (imp.contains('구체') || imp.contains('수치') ? 12 : 0);
+    double logic = avg +
+        (str.contains('논리') || str.contains('흐름') ? 6 : 0) -
+        (imp.contains('논리') || imp.contains('흐름') ? 10 : 0);
+    double expert = avg +
+        (str.contains('전문') || str.contains('기술') ? 6 : 0) -
+        (imp.contains('전문') || imp.contains('지식') ? 8 : 0);
+    final sTotal =
+        results.map((r) => r.feedback.strengths.length).reduce((a, b) => a + b);
+    final iTotal = results
+        .map((r) => r.feedback.improvements.length)
+        .reduce((a, b) => a + b)
+        .clamp(1, 9999);
+    double conf = avg + (sTotal / iTotal - 0.8) * 12;
+
+    return [star, spec, logic, expert, conf]
+        .map((v) => v.clamp(20.0, 100.0))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scores = _scores;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.radar_rounded, color: AppTheme.primary, size: 15),
+              SizedBox(width: 6),
+              Text(
+                '역량 분석',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 200,
+            child: RadarChart(
+              RadarChartData(
+                dataSets: [
+                  RadarDataSet(
+                    fillColor: AppTheme.primary.withValues(alpha: 0.12),
+                    borderColor: AppTheme.primary,
+                    borderWidth: 2,
+                    dataEntries:
+                        scores.map((s) => RadarEntry(value: s)).toList(),
+                  ),
+                ],
+                radarBackgroundColor: Colors.transparent,
+                borderData: FlBorderData(show: false),
+                radarBorderData: const BorderSide(
+                    color: Color(0xFFE2E8F0), width: 1),
+                gridBorderData: const BorderSide(
+                    color: Color(0xFFE2E8F0), width: 1),
+                tickCount: 4,
+                ticksTextStyle:
+                    const TextStyle(color: Colors.transparent, fontSize: 0),
+                getTitle: (index, angle) => RadarChartTitle(
+                  text: _labels[index],
+                  angle: 0,
+                ),
+                titleTextStyle: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _CirclePainter extends CustomPainter {

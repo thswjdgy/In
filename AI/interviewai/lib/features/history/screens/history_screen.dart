@@ -217,9 +217,9 @@ class _StatsCard extends StatelessWidget {
       child: Row(
         children: [
           _StatItem(label: '총 세션', value: '${sessions.length}회'),
-          _StatDivider(),
+          const _StatDivider(),
           _StatItem(label: '평균 점수', value: '$avg점'),
-          _StatDivider(),
+          const _StatDivider(),
           _StatItem(label: '최고 점수', value: '$best점'),
         ],
       ),
@@ -258,6 +258,8 @@ class _StatItem extends StatelessWidget {
 }
 
 class _StatDivider extends StatelessWidget {
+  const _StatDivider();
+
   @override
   Widget build(BuildContext context) => Container(
         width: 1,
@@ -521,6 +523,9 @@ class _SessionTile extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime d) =>
-      '${d.month}/${d.day}';
+  String _formatDate(DateTime d) {
+    final now = DateTime.now();
+    if (d.year == now.year) return '${d.month}/${d.day}';
+    return '${d.year}.${d.month}.${d.day}';
+  }
 }
