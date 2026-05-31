@@ -34,6 +34,7 @@ dependencies:
 
   # UI
   fl_chart: ^0.70.2
+  google_fonts: ^6.2.1
 
   # 유틸
   freezed_annotation: ^2.4.4
