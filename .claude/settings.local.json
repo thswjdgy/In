@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.jobkorea.co.kr)",
+      "Bash(start *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(gh run *)",
+      "Bash(curl -s https://thswjdgy.github.io/interviewai-presentation/)"
+    ]
+  }
+}

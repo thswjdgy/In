@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'features/auth/screens/login_screen.dart';
@@ -11,7 +12,15 @@ import 'features/result/screens/result_screen.dart';
 import 'shared/theme/app_theme.dart';
 
 final _router = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/login',
+  redirect: (context, state) {
+    try {
+      final loggedIn = FirebaseAuth.instance.currentUser != null;
+      final onLogin = state.matchedLocation == '/login';
+      if (loggedIn && onLogin) return '/';
+    } catch (_) {}
+    return null;
+  },
   routes: [
     GoRoute(
       path: '/',
@@ -25,6 +34,11 @@ final _router = GoRouter(
           job: extra['job'] as String,
           type: extra['type'] as String,
           count: extra['count'] as int,
+          resume: extra['resume'] as String?,
+          jobPosting: extra['jobPosting'] as String?,
+          persona: extra['persona'] as InterviewPersona? ??
+              InterviewPersona.standard,
+          mode: extra['mode'] as InterviewMode? ?? InterviewMode.practice,
         );
       },
     ),
@@ -36,6 +50,7 @@ final _router = GoRouter(
           feedback: extra['feedback'] as FeedbackModel,
           question: extra['question'] as String,
           answer: extra['answer'] as String,
+          followUpQuestion: extra['followUpQuestion'] as String?,
           isLast: extra['isLast'] as bool,
           onNext: extra['onNext'] as VoidCallback?,
           onFinish: extra['onFinish'] as VoidCallback?,

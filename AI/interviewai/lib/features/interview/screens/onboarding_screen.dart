@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../../auth/repositories/auth_repository.dart';
+import '../../feedback/models/feedback_model.dart';
 import '../../../core/services/streak_service.dart';
 import '../../../shared/theme/app_theme.dart';
 
@@ -56,25 +58,48 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _jobController = TextEditingController();
+  final _resumeController = TextEditingController();
+  final _jobPostingController = TextEditingController();
   final _focusNode = FocusNode();
   String _selectedType = 'technical';
   int _questionCount = 5;
+  bool _resumeMode = false;
+  bool _jobPostingMode = false;
+  InterviewPersona _persona = InterviewPersona.standard;
+  InterviewMode _mode = InterviewMode.practice;
   StreakData? _streak;
+  LocalUser? _user;
+  final _authRepo = AuthRepository();
 
-  bool get _canStart => _jobController.text.trim().isNotEmpty;
+  bool get _canStart {
+    if (_jobController.text.trim().isEmpty) return false;
+    if (_resumeMode && _resumeController.text.trim().length < 50) return false;
+    if (_jobPostingMode && _jobPostingController.text.trim().length < 30) return false;
+    return true;
+  }
 
   @override
   void initState() {
     super.initState();
     _jobController.addListener(() => setState(() {}));
+    _resumeController.addListener(() => setState(() {}));
+    _jobPostingController.addListener(() => setState(() {}));
     StreakService().load().then((s) {
       if (mounted) setState(() => _streak = s);
+    });
+    _authRepo.currentLocalUser.then((u) {
+      if (mounted) setState(() => _user = u);
+    });
+    _authRepo.localAuthChanges.listen((u) {
+      if (mounted) setState(() => _user = u);
     });
   }
 
   @override
   void dispose() {
     _jobController.dispose();
+    _resumeController.dispose();
+    _jobPostingController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -86,6 +111,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       'job': _jobController.text.trim(),
       'type': _selectedType,
       'count': _questionCount,
+      'resume': _resumeMode ? _resumeController.text.trim() : null,
+      'jobPosting': _jobPostingMode ? _jobPostingController.text.trim() : null,
+      'persona': _persona,
+      'mode': _mode,
     });
   }
 
@@ -112,6 +141,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         tooltip: '면접 기록',
                         onPressed: () => context.push('/history'),
                       ),
+                      if (_user == null)
+                        TextButton(
+                          onPressed: () => context.push('/login'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppTheme.primary,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          child: const Text('로그인'),
+                        )
+                      else
+                        _UserAvatar(user: _user!),
                     ],
                   ),
                 ),
@@ -130,12 +177,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       onSubmitted: (_) => _start(),
                     ),
                     const SizedBox(height: 28),
-                    _label('면접 유형'),
-                    const SizedBox(height: 10),
-                    _TypeRow(
-                      selected: _selectedType,
-                      onSelect: (t) => setState(() => _selectedType = t),
+                    // ── AI 맞춤 질문 ──────────────────────
+                    _ResumeToggle(
+                      enabled: _resumeMode,
+                      controller: _resumeController,
+                      onToggle: (v) => setState(() => _resumeMode = v),
                     ),
+                    const SizedBox(height: 10),
+                    _JobPostingToggle(
+                      enabled: _jobPostingMode,
+                      controller: _jobPostingController,
+                      onToggle: (v) => setState(() => _jobPostingMode = v),
+                    ),
+                    if (!_resumeMode && !_jobPostingMode) ...[
+                      const SizedBox(height: 28),
+                      _label('면접 유형'),
+                      const SizedBox(height: 10),
+                      _TypeRow(
+                        selected: _selectedType,
+                        onSelect: (t) => setState(() => _selectedType = t),
+                      ),
+                    ],
+                    // ── 페르소나 선택 ──────────────────────
+                    const SizedBox(height: 28),
+                    _label('면접관 유형'),
+                    const SizedBox(height: 10),
+                    _PersonaSelector(
+                      selected: _persona,
+                      onSelect: (p) => setState(() => _persona = p),
+                    ),
+                    // ── 연습 / 실전 모드 ───────────────────
+                    const SizedBox(height: 28),
+                    _label('면접 모드'),
+                    const SizedBox(height: 10),
+                    _ModeSelector(
+                      selected: _mode,
+                      onSelect: (m) => setState(() => _mode = m),
+                    ),
+                    // ── 질문 수 ───────────────────────────
                     const SizedBox(height: 28),
                     _label('질문 수'),
                     const SizedBox(height: 10),
@@ -528,6 +607,543 @@ class _CountRow extends StatelessWidget {
       );
 }
 
+// ── 채용공고 토글 ─────────────────────────────────────────────
+
+class _JobPostingToggle extends StatelessWidget {
+  final bool enabled;
+  final TextEditingController controller;
+  final ValueChanged<bool> onToggle;
+
+  const _JobPostingToggle({
+    required this.enabled,
+    required this.controller,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => onToggle(!enabled),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: enabled
+                    ? const Color(0xFFF59E0B).withValues(alpha: 0.06)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: enabled
+                      ? const Color(0xFFF59E0B).withValues(alpha: 0.4)
+                      : const Color(0xFFE2E8F0),
+                  width: enabled ? 1.5 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: enabled
+                          ? const Color(0xFFF59E0B).withValues(alpha: 0.1)
+                          : const Color(0xFFF1F5F9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.work_outline_rounded,
+                      size: 20,
+                      color: enabled
+                          ? const Color(0xFFF59E0B)
+                          : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '채용공고 맞춤 질문',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: enabled
+                                ? const Color(0xFFF59E0B)
+                                : const Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          '공고의 직무 요건을 분석해 맞춤 질문 생성',
+                          style: TextStyle(
+                              fontSize: 12, color: Color(0xFF94A3B8)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 44,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: enabled
+                          ? const Color(0xFFF59E0B)
+                          : const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: AnimatedAlign(
+                      duration: const Duration(milliseconds: 200),
+                      alignment: enabled
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        width: 18,
+                        height: 18,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (enabled) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 5,
+              minLines: 3,
+              style: const TextStyle(
+                  fontSize: 14, height: 1.6, color: Color(0xFF1E293B)),
+              decoration: InputDecoration(
+                hintText: '채용공고 내용을 붙여넣어 주세요.\n(직무 요건, 우대사항, 주요 업무 등)',
+                hintStyle: const TextStyle(
+                    color: Color(0xFFCBD5E1), fontSize: 13, height: 1.6),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.all(16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                      color: Color(0xFFF59E0B), width: 1.5),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                '${controller.text.length}자 입력됨 (최소 30자)',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: controller.text.length >= 30
+                      ? AppTheme.success
+                      : const Color(0xFF94A3B8),
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
+}
+
+// ── 페르소나 선택 ─────────────────────────────────────────────
+
+class _PersonaSelector extends StatelessWidget {
+  final InterviewPersona selected;
+  final ValueChanged<InterviewPersona> onSelect;
+
+  const _PersonaSelector({required this.selected, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Row(
+            children: [
+              _PersonaChip(
+                persona: InterviewPersona.standard,
+                selected: selected,
+                onTap: () => onSelect(InterviewPersona.standard),
+              ),
+              const SizedBox(width: 8),
+              _PersonaChip(
+                persona: InterviewPersona.practitioner,
+                selected: selected,
+                onTap: () => onSelect(InterviewPersona.practitioner),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _PersonaChip(
+                persona: InterviewPersona.executive,
+                selected: selected,
+                onTap: () => onSelect(InterviewPersona.executive),
+              ),
+              const SizedBox(width: 8),
+              _PersonaChip(
+                persona: InterviewPersona.pressure,
+                selected: selected,
+                onTap: () => onSelect(InterviewPersona.pressure),
+              ),
+            ],
+          ),
+        ],
+      );
+}
+
+class _PersonaChip extends StatelessWidget {
+  final InterviewPersona persona;
+  final InterviewPersona selected;
+  final VoidCallback onTap;
+
+  const _PersonaChip({
+    required this.persona,
+    required this.selected,
+    required this.onTap,
+  });
+
+  static const _icons = {
+    InterviewPersona.standard: Icons.person_rounded,
+    InterviewPersona.practitioner: Icons.handshake_rounded,
+    InterviewPersona.executive: Icons.business_rounded,
+    InterviewPersona.pressure: Icons.bolt_rounded,
+  };
+
+  static const _colors = {
+    InterviewPersona.standard: AppTheme.primary,
+    InterviewPersona.practitioner: Color(0xFF10B981),
+    InterviewPersona.executive: Color(0xFF6366F1),
+    InterviewPersona.pressure: Color(0xFFEF4444),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = selected == persona;
+    final color = _colors[persona]!;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.08) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? color : const Color(0xFFE2E8F0),
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(_icons[persona], size: 16,
+                  color: isSelected ? color : const Color(0xFF94A3B8)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      persona.label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? color : const Color(0xFF334155),
+                      ),
+                    ),
+                    Text(
+                      persona.desc,
+                      style: const TextStyle(
+                          fontSize: 10, color: Color(0xFF94A3B8)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── 모드 선택 ─────────────────────────────────────────────────
+
+class _ModeSelector extends StatelessWidget {
+  final InterviewMode selected;
+  final ValueChanged<InterviewMode> onSelect;
+
+  const _ModeSelector({required this.selected, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          _ModeChip(
+            mode: InterviewMode.practice,
+            selected: selected,
+            icon: Icons.school_rounded,
+            color: AppTheme.success,
+            onTap: () => onSelect(InterviewMode.practice),
+          ),
+          const SizedBox(width: 10),
+          _ModeChip(
+            mode: InterviewMode.real,
+            selected: selected,
+            icon: Icons.timer_rounded,
+            color: AppTheme.error,
+            onTap: () => onSelect(InterviewMode.real),
+          ),
+        ],
+      );
+}
+
+class _ModeChip extends StatelessWidget {
+  final InterviewMode mode;
+  final InterviewMode selected;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ModeChip({
+    required this.mode,
+    required this.selected,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = selected == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.08) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? color : const Color(0xFFE2E8F0),
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 18,
+                      color: isSelected ? color : const Color(0xFF94A3B8)),
+                  const SizedBox(width: 8),
+                  Text(
+                    mode.label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? color : const Color(0xFF334155),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                mode.desc,
+                style: const TextStyle(
+                    fontSize: 11, color: Color(0xFF94A3B8), height: 1.4),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── 자소서 모드 토글 ──────────────────────────────────────────
+
+class _ResumeToggle extends StatelessWidget {
+  final bool enabled;
+  final TextEditingController controller;
+  final ValueChanged<bool> onToggle;
+
+  const _ResumeToggle({
+    required this.enabled,
+    required this.controller,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => onToggle(!enabled),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: enabled
+                    ? AppTheme.primary.withValues(alpha: 0.06)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: enabled
+                      ? AppTheme.primary.withValues(alpha: 0.4)
+                      : const Color(0xFFE2E8F0),
+                  width: enabled ? 1.5 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: enabled
+                          ? AppTheme.primary.withValues(alpha: 0.1)
+                          : const Color(0xFFF1F5F9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.description_outlined,
+                      size: 20,
+                      color: enabled
+                          ? AppTheme.primary
+                          : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '자소서 기반 맞춤 질문',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: enabled
+                                ? AppTheme.primary
+                                : const Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'AI가 자기소개서를 분석해 맞춤 질문 생성',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 44,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: enabled
+                          ? AppTheme.primary
+                          : const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: AnimatedAlign(
+                      duration: const Duration(milliseconds: 200),
+                      alignment: enabled
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        width: 18,
+                        height: 18,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (enabled) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 6,
+              minLines: 4,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.6,
+                color: Color(0xFF1E293B),
+              ),
+              decoration: InputDecoration(
+                hintText:
+                    '자기소개서 내용을 붙여넣어 주세요.\n(50자 이상 입력 시 맞춤 질문이 생성됩니다)',
+                hintStyle: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFFCBD5E1),
+                  height: 1.6,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.all(16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                      color: AppTheme.primary, width: 1.5),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                '${controller.text.length}자 입력됨 (최소 50자)',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: controller.text.length >= 50
+                      ? AppTheme.success
+                      : const Color(0xFF94A3B8),
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
+}
+
 // ── 시작 버튼 ─────────────────────────────────────────────────
 
 class _StartButton extends StatelessWidget {
@@ -573,6 +1189,177 @@ class _StartButton extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: enabled ? Colors.white : const Color(0xFF94A3B8),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+// ── 유저 아바타 ───────────────────────────────────────────────
+
+class _UserAvatar extends StatelessWidget {
+  final LocalUser user;
+  const _UserAvatar({required this.user});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: () => _showMenu(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 15,
+                backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
+                child: Text(
+                  (user.displayName ?? user.email)
+                      .substring(0, 1)
+                      .toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                user.displayName?.split(' ').first ?? '내 계정',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF334155),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  void _showMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ProfileSheet(user: user),
+    );
+  }
+}
+
+class _ProfileSheet extends StatelessWidget {
+  final LocalUser user;
+  const _ProfileSheet({required this.user});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            CircleAvatar(
+              radius: 32,
+              backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
+              child: Text(
+                (user.displayName ?? user.email)
+                    .substring(0, 1)
+                    .toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              user.displayName ?? '사용자',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              user.email,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+            ),
+            const SizedBox(height: 28),
+            _SheetButton(
+              icon: Icons.history_rounded,
+              label: '면접 기록 보기',
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/history');
+              },
+            ),
+            const SizedBox(height: 10),
+            _SheetButton(
+              icon: Icons.logout_rounded,
+              label: '로그아웃',
+              color: const Color(0xFFEF4444),
+              onTap: () async {
+                await AuthRepository().signOut();
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  context.go('/login');
+                }
+              },
+            ),
+          ],
+        ),
+      );
+}
+
+class _SheetButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
+
+  const _SheetButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color = const Color(0xFF1E293B),
+  });
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: color,
                 ),
               ),
             ],

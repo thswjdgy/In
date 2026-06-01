@@ -8,6 +8,7 @@ class FeedbackScreen extends StatelessWidget {
   final FeedbackModel feedback;
   final String question;
   final String answer;
+  final String? followUpQuestion;
   final bool isLast;
   final VoidCallback? onNext;
   final VoidCallback? onFinish;
@@ -17,6 +18,7 @@ class FeedbackScreen extends StatelessWidget {
     required this.feedback,
     required this.question,
     required this.answer,
+    this.followUpQuestion,
     required this.isLast,
     this.onNext,
     this.onFinish,
@@ -82,34 +84,65 @@ class FeedbackScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              if (feedback.strengths.isNotEmpty) ...[
+              // 잘한 점
+              const SizedBox(height: 12),
+              _Section(
+                icon: Icons.thumb_up_rounded,
+                title: '잘한 점',
+                color: AppTheme.success,
+                child: feedback.goodPoint.isNotEmpty
+                    ? Text(
+                        feedback.goodPoint,
+                        style: const TextStyle(
+                            fontSize: 14, height: 1.6, color: Color(0xFF334155)),
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: feedback.strengths
+                            .map((s) => _BulletItem(
+                                text: s, color: AppTheme.success))
+                            .toList(),
+                      ),
+              ),
+              // 아쉬운 점
+              const SizedBox(height: 12),
+              _Section(
+                icon: Icons.lightbulb_rounded,
+                title: '아쉬운 점',
+                color: const Color(0xFFF59E0B),
+                child: feedback.badPoint.isNotEmpty
+                    ? Text(
+                        feedback.badPoint,
+                        style: const TextStyle(
+                            fontSize: 14, height: 1.6, color: Color(0xFF334155)),
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: feedback.improvements
+                            .map((s) => _BulletItem(
+                                text: s,
+                                color: const Color(0xFFF59E0B)))
+                            .toList(),
+                      ),
+              ),
+              // AI 모범 답변
+              if (feedback.betterVersion.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                _Section(
-                  icon: Icons.thumb_up_rounded,
-                  title: '잘한 점',
-                  color: AppTheme.success,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: feedback.strengths
-                        .map((s) => _BulletItem(text: s, color: AppTheme.success))
-                        .toList(),
-                  ),
+                _BetterVersionCard(text: feedback.betterVersion),
+              ],
+              // 말하기 분석 (측정값이 있을 때만)
+              if (feedback.speechSpeedCpm > 0 ||
+                  feedback.fillerWords.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _SpeechAnalysisCard(
+                  speedCpm: feedback.speechSpeedCpm,
+                  fillerWords: feedback.fillerWords,
                 ),
               ],
-              if (feedback.improvements.isNotEmpty) ...[
+              // 꼬리 질문 (있을 때만)
+              if (followUpQuestion != null && followUpQuestion!.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                _Section(
-                  icon: Icons.lightbulb_rounded,
-                  title: '보완할 점',
-                  color: const Color(0xFFF59E0B),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: feedback.improvements
-                        .map((s) => _BulletItem(
-                            text: s, color: const Color(0xFFF59E0B)))
-                        .toList(),
-                  ),
-                ),
+                _FollowUpCard(question: followUpQuestion!),
               ],
               const SizedBox(height: 12),
               _HintButton(question: question, improvements: feedback.improvements),
@@ -375,6 +408,316 @@ class _BulletItem extends StatelessWidget {
                   height: 1.5,
                   color: Color(0xFF334155),
                 ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+// ── AI 모범 답변 카드 ─────────────────────────────────────────
+
+class _BetterVersionCard extends StatefulWidget {
+  final String text;
+  const _BetterVersionCard({required this.text});
+
+  @override
+  State<_BetterVersionCard> createState() => _BetterVersionCardState();
+}
+
+class _BetterVersionCardState extends State<_BetterVersionCard> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: () => setState(() => _expanded = !_expanded),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+                color: AppTheme.success.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded,
+                      size: 16, color: AppTheme.success),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'AI 모범 답변',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.success,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    _expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: AppTheme.success,
+                  ),
+                ],
+              ),
+              if (_expanded) ...[
+                const SizedBox(height: 10),
+                const Divider(color: Color(0xFFBBF7D0), height: 1),
+                const SizedBox(height: 10),
+                Text(
+                  widget.text,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.7,
+                    color: Color(0xFF166534),
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: 6),
+                Text(
+                  widget.text.length > 60
+                      ? '${widget.text.substring(0, 60)}...'
+                      : widget.text,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF4ADE80),
+                    height: 1.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+}
+
+// ── 말하기 분석 카드 ──────────────────────────────────────────
+
+class _SpeechAnalysisCard extends StatelessWidget {
+  final int speedCpm;
+  final Map<String, int> fillerWords;
+
+  const _SpeechAnalysisCard({
+    required this.speedCpm,
+    required this.fillerWords,
+  });
+
+  // 한국어 기준 적정 발화 속도: 분당 200~350자
+  String get _speedLabel {
+    if (speedCpm < 150) return '너무 느림';
+    if (speedCpm < 200) return '약간 느림';
+    if (speedCpm <= 350) return '적정 속도';
+    if (speedCpm <= 450) return '약간 빠름';
+    return '너무 빠름';
+  }
+
+  Color get _speedColor {
+    if (speedCpm >= 200 && speedCpm <= 350) return AppTheme.success;
+    if (speedCpm >= 150 && speedCpm <= 450) return const Color(0xFFF59E0B);
+    return AppTheme.error;
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.graphic_eq_rounded,
+                    size: 16, color: Color(0xFF6366F1)),
+                SizedBox(width: 6),
+                Text(
+                  '말하기 분석',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF6366F1),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            // 발화 속도
+            if (speedCpm > 0) ...[
+              Row(
+                children: [
+                  const Icon(Icons.speed_rounded,
+                      size: 14, color: Color(0xFF94A3B8)),
+                  const SizedBox(width: 6),
+                  const Text('발화 속도',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500)),
+                  const Spacer(),
+                  Text(
+                    '$speedCpm자/분',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: _speedColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _speedColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _speedLabel,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: _speedColor,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: (speedCpm / 500).clamp(0.0, 1.0),
+                  backgroundColor: const Color(0xFFE2E8F0),
+                  color: _speedColor,
+                  minHeight: 6,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text('적정 범위: 200~350자/분 (한국어 기준)',
+                  style: TextStyle(
+                      fontSize: 10, color: Color(0xFFCBD5E1))),
+            ],
+            // 말버릇
+            if (fillerWords.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Divider(color: Color(0xFFF1F5F9), height: 1),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Icon(Icons.record_voice_over_rounded,
+                      size: 14, color: Color(0xFF94A3B8)),
+                  const SizedBox(width: 6),
+                  const Text('감지된 말버릇',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: (fillerWords.entries.toList()
+                      ..sort((a, b) => b.value.compareTo(a.value)))
+                    .map((e) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: e.value >= 3
+                                ? AppTheme.error.withValues(alpha: 0.08)
+                                : const Color(0xFFFFF7ED),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: e.value >= 3
+                                  ? AppTheme.error.withValues(alpha: 0.3)
+                                  : const Color(0xFFF59E0B)
+                                      .withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Text(
+                            '"${e.key}" ${e.value}회',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: e.value >= 3
+                                  ? AppTheme.error
+                                  : const Color(0xFFF59E0B),
+                            ),
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ] else if (speedCpm > 0) ...[
+              const SizedBox(height: 10),
+              const Row(
+                children: [
+                  Icon(Icons.check_circle_rounded,
+                      size: 14, color: AppTheme.success),
+                  SizedBox(width: 6),
+                  Text('말버릇 없음 — 깔끔한 답변이었습니다!',
+                      style: TextStyle(
+                          fontSize: 12, color: AppTheme.success)),
+                ],
+              ),
+            ],
+          ],
+        ),
+      );
+}
+
+// ── 꼬리 질문 카드 ─────────────────────────────────────────────
+
+class _FollowUpCard extends StatelessWidget {
+  final String question;
+  const _FollowUpCard({required this.question});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.reply_rounded,
+                    size: 16, color: Color(0xFFF59E0B)),
+                SizedBox(width: 6),
+                Text(
+                  '예상 꼬리 질문',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFF59E0B),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              question,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.6,
+                color: Color(0xFF78350F),
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

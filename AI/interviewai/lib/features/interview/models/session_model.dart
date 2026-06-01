@@ -70,4 +70,16 @@ class SessionSummary {
         startedAt: (data['startedAt'] as dynamic)?.toDate() ?? DateTime.now(),
         endedAt: (data['endedAt'] as dynamic)?.toDate() ?? DateTime.now(),
       );
+
+  factory SessionSummary.fromLocal(Map<String, dynamic> data) =>
+      SessionSummary(
+        sessionId: data['sessionId'] as String,
+        job: data['jobCategory'] as String? ?? '',
+        type: data['interviewType'] as String? ?? '',
+        totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
+        questionCount: (data['questionCount'] as num?)?.toInt() ?? 0,
+        weakAreas: List<String>.from(data['weakAreas'] ?? []),
+        startedAt: DateTime.tryParse(data['startedAt'] as String? ?? '') ?? DateTime.now(),
+        endedAt: DateTime.tryParse(data['endedAt'] as String? ?? '') ?? DateTime.now(),
+      );
 }
