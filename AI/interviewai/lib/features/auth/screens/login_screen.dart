@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../repositories/auth_repository.dart';
@@ -205,6 +206,11 @@ class _LoginFormState extends State<_LoginForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // SNS 로그인 (상단 강조)
+          _GoogleButton(loading: _loading, onTap: _googleSignIn),
+          const SizedBox(height: 16),
+          _Divider(label: '또는 이메일로 로그인'),
+          const SizedBox(height: 16),
           _TossField(
             label: '이메일',
             controller: _emailCtrl,
@@ -254,12 +260,8 @@ class _LoginFormState extends State<_LoginForm> {
             _ErrorBanner(message: _error!),
           ],
           const SizedBox(height: 24),
-          _TossButton(label: '로그인', loading: _loading, onTap: _signIn),
-          const SizedBox(height: 16),
-          _Divider(),
-          const SizedBox(height: 16),
-          _GoogleButton(loading: _loading, onTap: _googleSignIn),
-          const SizedBox(height: 24),
+          _TossButton(label: '이메일로 로그인', loading: _loading, onTap: _signIn),
+          const SizedBox(height: 20),
           Center(
             child: GestureDetector(
               onTap: () => context.go('/'),
@@ -367,6 +369,15 @@ class _SignUpFormState extends State<_SignUpForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // SNS 회원가입 (상단 강조)
+          _GoogleButton(
+            loading: _loading,
+            onTap: _googleSignUp,
+            label: 'Google로 시작하기',
+          ),
+          const SizedBox(height: 16),
+          _Divider(label: '또는 이메일로 가입'),
+          const SizedBox(height: 16),
           _TossField(
             label: '이름',
             controller: _nameCtrl,
@@ -437,15 +448,7 @@ class _SignUpFormState extends State<_SignUpForm> {
             _ErrorBanner(message: _error!),
           ],
           const SizedBox(height: 24),
-          _TossButton(label: '회원가입', loading: _loading, onTap: _signUp),
-          const SizedBox(height: 16),
-          _Divider(),
-          const SizedBox(height: 16),
-          _GoogleButton(
-            loading: _loading,
-            onTap: _googleSignUp,
-            label: 'Google로 시작하기',
-          ),
+          _TossButton(label: '이메일로 회원가입', loading: _loading, onTap: _signUp),
           const SizedBox(height: 24),
           Center(
             child: GestureDetector(
@@ -741,59 +744,128 @@ class _GoogleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: loading ? null : onTap,
-        child: Container(
-          height: 54,
-          decoration: BoxDecoration(
-            color: _kBg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _kBorder, width: 1.5),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 22,
-                height: 22,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF4285F4),
-                  shape: BoxShape.circle,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 100),
+          opacity: loading ? 0.5 : 1.0,
+          child: Container(
+            height: 54,
+            decoration: BoxDecoration(
+              color: _kBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _kBorder, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
                 ),
-                child: const Center(
-                  child: Text(
-                    'G',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const _GoogleColoredG(size: 24),
+                const SizedBox(width: 10),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: _kTitle,
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: _kTitle,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
 }
 
+// ── Google G 4색 로고 ──────────────────────────────────────────
+
+class _GoogleColoredG extends StatelessWidget {
+  final double size;
+  const _GoogleColoredG({this.size = 24.0});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: size,
+        height: size,
+        child: const CustomPaint(painter: _GLogoPainter()),
+      );
+}
+
+class _GLogoPainter extends CustomPainter {
+  const _GLogoPainter();
+
+  // degrees-from-North(clockwise) → Flutter canvas radians (0=East, clockwise)
+  static double _toRad(double deg) => (deg - 90) * math.pi / 180;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final c = Offset(cx, cy);
+    final r = size.width / 2;
+    final innerR = r * 0.5;
+
+    canvas.clipPath(Path()..addOval(Rect.fromCircle(center: c, radius: r)));
+
+    const blue = Color(0xFF4285F4);
+    const red = Color(0xFFEA4335);
+    const yellow = Color(0xFFFBBC05);
+    const green = Color(0xFF34A853);
+
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    paint.color = Colors.white;
+    canvas.drawCircle(c, r, paint);
+
+    // Annulus sector: startDeg/sweepDeg in degrees-from-North clockwise
+    void sector(Color color, double startDeg, double sweepDeg) {
+      final start = _toRad(startDeg);
+      final sweep = sweepDeg * math.pi / 180;
+      final path = Path()
+        ..arcTo(Rect.fromCircle(center: c, radius: r), start, sweep, true)
+        ..arcTo(
+            Rect.fromCircle(center: c, radius: innerR), start + sweep, -sweep, false)
+        ..close();
+      paint.color = color;
+      canvas.drawPath(path, paint);
+    }
+
+    // Gap on right side: 45° → 135° (1:30 to 4:30)
+    // Remaining 270° arc: 135° → 250° (blue) → 300° (green) → 360° (yellow) → 45° (red)
+    sector(blue,    135, 115);
+    sector(green,   250,  50);
+    sector(yellow,  300,  60);
+    sector(red,     360,  45);
+
+    // Crossbar: blue bar at lower-center of gap
+    paint.color = blue;
+    canvas.drawRect(
+      Rect.fromLTRB(cx + innerR, cy - r * 0.08, cx + r, cy + r * 0.38),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter _) => false;
+}
+
 class _Divider extends StatelessWidget {
+  final String label;
+  const _Divider({this.label = '또는'});
+
   @override
   Widget build(BuildContext context) => Row(
         children: [
           const Expanded(child: Divider(color: _kBorder, thickness: 1)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: const Text(
-              '또는',
-              style: TextStyle(
+            child: Text(
+              label,
+              style: const TextStyle(
                   fontSize: 12, color: _kBody, fontWeight: FontWeight.w500),
             ),
           ),

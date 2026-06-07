@@ -79,12 +79,22 @@ class AuthRepository {
   // ── Firebase 래핑 메서드 ──────────────────────────────────────
 
   Future<LocalUser?> signInWithGoogle() async {
+    if (!_firebaseAvailable) {
+      throw _LocalAuthException(
+          'Google 로그인은 Firebase 설정이 필요합니다.');
+    }
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) return null;
     final googleAuth = await googleUser.authentication;
+    final idToken = googleAuth.idToken;
+    final accessToken = googleAuth.accessToken;
+    if (idToken == null) {
+      throw _LocalAuthException(
+          'Google 인증 토큰을 가져오지 못했습니다. SHA-1 키가 Firebase에 등록됐는지 확인해주세요.');
+    }
     final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
+      accessToken: accessToken,
+      idToken: idToken,
     );
     final result = await _auth.signInWithCredential(credential);
     final u = result.user;

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "360003452424",
+    "project_id": "interviewai-eb294",
+    "storage_bucket": "interviewai-eb294.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:360003452424:android:0cdc8a2f7433884cae9bbd",
+        "android_client_info": {
+          "package_name": "com.interviewai.interviewai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCo_vMHymCDefTGKlDqH-tmx2fzOGR4nRw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
