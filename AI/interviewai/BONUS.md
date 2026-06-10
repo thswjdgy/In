@@ -125,8 +125,10 @@ or: `.claude/mcp_config.json` (project-level)
 | 2 | UI 개선 및 카테고리 확장 | ✅ Done |
 | 3 | Firebase 인증 + Firestore 기록 | ✅ Done |
 | 4 | 분석·공유·AI 질문·말하기 분석 | ✅ Done |
+| 5 | Firebase 실 연동 (google-services.json) + 웹 Google 로그인 대응 | ✅ Done |
 
 ## Suggested Next Features (미구현)
+- [ ] **Google 로그인 (Android)** — SHA-1 키 Firebase 등록 후 `google-services.json` 재다운로드 필요
 - [ ] **영상/카메라 분석** — 시선 처리, 표정 분석 (MediaPipe 필요)
 - [ ] **성장 대시보드** — 발화속도·말버릇 개선 추이 그래프
 - [ ] **화상 면접 실시간 지원** — 줌 화면 옆 키워드 힌트 (데스크톱/웹)

@@ -56,7 +56,7 @@ lib/
 |---|---|---|
 | `/` | OnboardingScreen | — |
 | `/login` | LoginScreen | — |
-| `/interview` | InterviewScreen | `job`, `type`, `count`, `resume?`, `jobPosting?`, `persona`, `mode` |
+| `/interview` | InterviewScreen | `job`, `type`, `count`, `resume?`, `jobPosting?`, `persona`, `mode` (persona: InterviewPersona enum, mode: InterviewMode enum) |
 | `/feedback` | FeedbackScreen | `feedback`, `question`, `answer`, `followUpQuestion?`, `isLast`, `onNext?`, `onFinish?` |
 | `/result` | ResultScreen | `job`, `results` |
 | `/history` | HistoryScreen | — |

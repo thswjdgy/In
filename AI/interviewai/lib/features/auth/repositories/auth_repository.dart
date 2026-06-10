@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -43,7 +44,7 @@ class AuthRepository {
   }
 
   FirebaseAuth get _auth => FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn? _googleSignIn = kIsWeb ? null : GoogleSignIn();
 
   // ── 현재 로그인 유저 (Firebase 우선, 없으면 로컬) ──────────────
 
@@ -80,8 +81,10 @@ class AuthRepository {
 
   Future<LocalUser?> signInWithGoogle() async {
     if (!_firebaseAvailable) {
-      throw _LocalAuthException(
-          'Google 로그인은 Firebase 설정이 필요합니다.');
+      throw _LocalAuthException('Google 로그인은 Firebase 설정이 필요합니다.');
+    }
+    if (_googleSignIn == null) {
+      throw _LocalAuthException('Google 로그인은 모바일 앱에서만 지원됩니다.');
     }
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) return null;
@@ -143,7 +146,7 @@ class AuthRepository {
   Future<void> signOut() async {
     if (_firebaseAvailable) {
       try {
-        await _googleSignIn.signOut();
+        await _googleSignIn?.signOut();
       } catch (_) {}
       await _auth.signOut();
     }

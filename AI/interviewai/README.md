@@ -32,7 +32,7 @@
 ## 빠른 시작
 
 ```bash
-git clone https://github.com/<your-org>/interviewai.git
+git clone https://github.com/thswjdgy/interviewai.git
 cd interviewai
 flutter pub get
 flutter run \

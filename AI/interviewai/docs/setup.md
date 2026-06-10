@@ -22,7 +22,7 @@ flutter doctor
 ## 1. 저장소 클론
 
 ```bash
-git clone https://github.com/<your-org>/interviewai.git
+git clone https://github.com/thswjdgy/interviewai.git
 cd interviewai
 ```
 
@@ -89,8 +89,11 @@ java -version
 ```
 
 **Q3. "Firebase not initialized" 크래시**  
-→ `google-services.json` / `GoogleService-Info.plist`가 올바른 위치에 있는지 확인하세요.  
-Firebase 연동 없이 실행하려면 main.dart의 Firebase init 코드를 주석 처리하세요.
+→ `google-services.json`이 `android/app/`에 있는지 확인하세요.  
+Firebase 없이도 앱은 정상 동작합니다 — 로그인·세션 저장이 SharedPreferences 로컬 모드로 자동 전환됩니다.
+
+**Q6. 웹(Chrome)에서 Google 로그인 오류**  
+→ Google 로그인은 Android에서만 지원됩니다. 웹에서는 이메일/비밀번호 로그인을 사용하세요.
 
 **Q4. Whisper API 호출 실패**  
 → `OPENAI_API_KEY`가 올바른지, 계정 크레딧이 남아있는지 확인하세요.

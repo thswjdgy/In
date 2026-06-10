@@ -26,13 +26,14 @@ graph TD
 
 ```
 lib/
-├── main.dart                    # 앱 진입점, ProviderScope
+├── main.dart                    # 앱 진입점, ProviderScope + Firebase init (try/catch)
 ├── app.dart                     # GoRouter, MaterialApp.router
 │
 ├── core/                        # 앱 전역 인프라
 │   ├── api/
-│   │   ├── whisper_client.dart  # OpenAI Whisper HTTP 클라이언트
-│   │   └── claude_feedback_client.dart  # Anthropic Claude 클라이언트
+│   │   ├── whisper_client.dart          # OpenAI Whisper HTTP 클라이언트
+│   │   ├── claude_feedback_client.dart  # Anthropic Claude 피드백 클라이언트
+│   │   └── claude_question_client.dart  # Anthropic Claude 질문생성 클라이언트
 │   ├── constants/
 │   │   └── env.dart             # dart-define 환경 변수
 │   ├── errors/
@@ -108,8 +109,8 @@ Riverpod Provider → 여러 화면이 공유하는 상태 (로그인 유저, �
 |------|------|---------------|
 | `/` | OnboardingScreen | — |
 | `/login` | LoginScreen | — |
-| `/interview` | InterviewScreen | `job`, `type`, `count` |
-| `/feedback` | FeedbackScreen | `feedback`, `question`, `answer`, `isLast`, `onNext`, `onFinish` |
+| `/interview` | InterviewScreen | `job`, `type`, `count`, `resume?`, `jobPosting?`, `persona`, `mode` |
+| `/feedback` | FeedbackScreen | `feedback`, `question`, `answer`, `followUpQuestion?`, `isLast`, `onNext?`, `onFinish?` |
 | `/result` | ResultScreen | `job`, `results` |
 | `/history` | HistoryScreen | — |
 | `/session-detail` | SessionDetailScreen | `userId`, `sessionId`, `job`, `score` |
