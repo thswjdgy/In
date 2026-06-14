@@ -22,9 +22,10 @@ dependencies:
   dio: ^5.8.0+1
 
   # 음성
-  flutter_sound: ^9.2.13
+  record: ^6.0.0
   flutter_tts: ^4.2.2
   permission_handler: ^11.4.0
+  http_parser: ^4.0.2
 
   # Firebase
   firebase_core: ^3.13.0

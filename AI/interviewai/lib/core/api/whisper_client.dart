@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:http_parser/http_parser.dart';
 import '../constants/env.dart';
 import '../errors/app_exception.dart';
 
@@ -6,16 +8,36 @@ class WhisperClient {
   final Dio _dio = Dio(BaseOptions(
     baseUrl: 'https://api.openai.com/v1',
     connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 60),
   ));
 
   Future<String> transcribe(String audioFilePath) async {
     try {
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(
+      MultipartFile audioFile;
+
+      if (kIsWeb &&
+          (audioFilePath.startsWith('blob:') ||
+              audioFilePath.startsWith('data:'))) {
+        // 웹: blob URL을 XHR로 가져와 바이트로 변환
+        final blobDio = Dio();
+        final res = await blobDio.get<List<int>>(
+          audioFilePath,
+          options: Options(responseType: ResponseType.bytes),
+        );
+        audioFile = MultipartFile.fromBytes(
+          res.data ?? [],
+          filename: 'audio.webm',
+          contentType: MediaType('audio', 'webm'),
+        );
+      } else {
+        audioFile = await MultipartFile.fromFile(
           audioFilePath,
           filename: 'audio.m4a',
-        ),
+        );
+      }
+
+      final formData = FormData.fromMap({
+        'file': audioFile,
         'model': 'whisper-1',
         'language': 'ko',
         'response_format': 'json',
