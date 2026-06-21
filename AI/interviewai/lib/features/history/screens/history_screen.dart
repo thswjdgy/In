@@ -146,6 +146,8 @@ class _HistoryBodyState extends State<_HistoryBody> {
                         _ScoreChart(sessions: sessions),
                         const SizedBox(height: 16),
                       ],
+                      _SpeechGrowthSection(sessions: sessions),
+                      const SizedBox(height: 16),
                       _WeakAreaTags(sessions: sessions),
                       const SizedBox(height: 16),
                       const Align(
@@ -553,4 +555,207 @@ class _Tag extends StatelessWidget {
                 color: Color(0xFF64748B),
                 fontWeight: FontWeight.w500)),
       );
+}
+
+// ── 성장 대시보드 ──────────────────────────────────────────────
+
+class _SpeechGrowthSection extends StatelessWidget {
+  final List<SessionSummary> sessions;
+  const _SpeechGrowthSection({required this.sessions});
+
+  @override
+  Widget build(BuildContext context) {
+    final withSpeed =
+        sessions.where((s) => s.avgSpeechSpeedCpm > 0).toList();
+    final withFiller =
+        sessions.where((s) => s.totalFillerCount > 0).toList();
+
+    if (withSpeed.isEmpty && withFiller.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.trending_up_rounded,
+                  size: 16, color: Color(0xFF64748B)),
+              SizedBox(width: 6),
+              Text('말하기 성장 추이',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B))),
+            ],
+          ),
+          if (withSpeed.length > 1) ...[
+            const SizedBox(height: 16),
+            _SpeechSpeedChart(sessions: withSpeed),
+          ],
+          if (withFiller.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _FillerSummary(sessions: withFiller),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SpeechSpeedChart extends StatelessWidget {
+  final List<SessionSummary> sessions;
+  const _SpeechSpeedChart({required this.sessions});
+
+  @override
+  Widget build(BuildContext context) {
+    final recent = sessions.take(10).toList().reversed.toList();
+    final spots = recent
+        .asMap()
+        .entries
+        .map((e) =>
+            FlSpot(e.key.toDouble(), e.value.avgSpeechSpeedCpm.toDouble()))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text('발화 속도 (자/분)',
+                style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+            const Spacer(),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                  color: Color(0xFF10B981), shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 4),
+            const Text('적정 구간 200–350',
+                style: TextStyle(fontSize: 10, color: Color(0xFF10B981))),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 120,
+          child: LineChart(LineChartData(
+            rangeAnnotations: RangeAnnotations(
+              horizontalRangeAnnotations: [
+                HorizontalRangeAnnotation(
+                  y1: 200,
+                  y2: 350,
+                  color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                ),
+              ],
+            ),
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: false,
+              getDrawingHorizontalLine: (_) =>
+                  FlLine(color: const Color(0xFFE2E8F0), strokeWidth: 1),
+            ),
+            titlesData: FlTitlesData(
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 36,
+                  interval: 100,
+                  getTitlesWidget: (v, _) => Text('${v.toInt()}',
+                      style: const TextStyle(
+                          fontSize: 9, color: Color(0xFF94A3B8))),
+                ),
+              ),
+              bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false)),
+              rightTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false)),
+              topTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false)),
+            ),
+            borderData: FlBorderData(show: false),
+            minY: 0,
+            lineBarsData: [
+              LineChartBarData(
+                spots: spots,
+                isCurved: true,
+                color: const Color(0xFF6366F1),
+                barWidth: 2.5,
+                dotData: FlDotData(
+                  getDotPainter: (spot, pct, bar, idx) => FlDotCirclePainter(
+                    radius: 4,
+                    color: const Color(0xFF6366F1),
+                    strokeWidth: 2,
+                    strokeColor: Colors.white,
+                  ),
+                ),
+                belowBarData: BarAreaData(
+                  show: true,
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.06),
+                ),
+              ),
+            ],
+          )),
+        ),
+      ],
+    );
+  }
+}
+
+class _FillerSummary extends StatelessWidget {
+  final List<SessionSummary> sessions;
+  const _FillerSummary({required this.sessions});
+
+  @override
+  Widget build(BuildContext context) {
+    final recent = sessions.take(5).toList();
+    final avg = (recent.map((s) => s.totalFillerCount).reduce((a, b) => a + b) /
+            recent.length)
+        .round();
+
+    Color statusColor;
+    String statusText;
+    if (avg <= 3) {
+      statusColor = const Color(0xFF10B981);
+      statusText = '우수';
+    } else if (avg <= 7) {
+      statusColor = const Color(0xFFF59E0B);
+      statusText = '보통';
+    } else {
+      statusColor = const Color(0xFFEF4444);
+      statusText = '개선 필요';
+    }
+
+    return Row(
+      children: [
+        const Text('말버릇 횟수 (최근 평균)',
+            style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+        const Spacer(),
+        Text('$avg회',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: statusColor)),
+        const SizedBox(width: 8),
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(statusText,
+              style: TextStyle(
+                  fontSize: 11,
+                  color: statusColor,
+                  fontWeight: FontWeight.w600)),
+        ),
+      ],
+    );
+  }
 }

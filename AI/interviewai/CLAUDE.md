@@ -95,7 +95,7 @@ Firestore schema: `users/{uid}/sessions/{sid}` + `questionAnswers` subcollection
 
 ## Verification Checklist (before each commit)
 1. `flutter analyze` → No issues found
-2. `flutter test` → 11/11 pass
+2. `flutter test` → 33/33 pass
 3. No hardcoded API keys (`grep -r "sk-" lib/`)
 4. No `withOpacity` calls (`grep -r "withOpacity" lib/`)
 5. All routes in `app.dart` have corresponding screen files
@@ -116,5 +116,6 @@ Firestore schema: `users/{uid}/sessions/{sid}` + `questionAnswers` subcollection
 | 연속 학습 스트릭 (🔥 뱃지) | ✅ |
 | 면접 기록 히스토리 + 점수 차트 | ✅ |
 | 취약 영역 태그 분석 | ✅ |
+| 말하기 성장 대시보드 (발화속도·말버릇 추이) | ✅ |
 | 결과 클립보드 공유 | ✅ |
 | GitHub Actions CI (analyze→test→apk) | ✅ |

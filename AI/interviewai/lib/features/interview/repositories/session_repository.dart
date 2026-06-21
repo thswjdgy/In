@@ -74,6 +74,18 @@ class SessionRepository {
         .take(5)
         .toList();
 
+    final speedList = results
+        .map((r) => (r['feedback'] as FeedbackModel).speechSpeedCpm)
+        .where((s) => s > 0)
+        .toList();
+    final avgSpeechSpeedCpm = speedList.isEmpty
+        ? 0
+        : (speedList.reduce((a, b) => a + b) / speedList.length).round();
+    final totalFillerCount = results.fold<int>(0, (acc, r) {
+      final fb = r['feedback'] as FeedbackModel;
+      return acc + fb.fillerWords.values.fold(0, (a, c) => a + c);
+    });
+
     final sessionId = 'local_${DateTime.now().millisecondsSinceEpoch}';
     list.insert(0, {
       'sessionId': sessionId,
@@ -82,6 +94,8 @@ class SessionRepository {
       'totalScore': totalScore,
       'questionCount': results.length,
       'weakAreas': weakAreas,
+      'avgSpeechSpeedCpm': avgSpeechSpeedCpm,
+      'totalFillerCount': totalFillerCount,
       'startedAt': startedAt.toIso8601String(),
       'endedAt': DateTime.now().toIso8601String(),
       'answers': results
@@ -122,6 +136,18 @@ class SessionRepository {
         .take(5)
         .toList();
 
+    final speedList = results
+        .map((r) => (r['feedback'] as FeedbackModel).speechSpeedCpm)
+        .where((s) => s > 0)
+        .toList();
+    final avgSpeechSpeedCpm = speedList.isEmpty
+        ? 0
+        : (speedList.reduce((a, b) => a + b) / speedList.length).round();
+    final totalFillerCount = results.fold<int>(0, (acc, r) {
+      final fb = r['feedback'] as FeedbackModel;
+      return acc + fb.fillerWords.values.fold(0, (a, c) => a + c);
+    });
+
     final sessionRef = _db
         .collection('users')
         .doc(userId)
@@ -134,6 +160,8 @@ class SessionRepository {
       'totalScore': totalScore,
       'questionCount': results.length,
       'weakAreas': weakAreas,
+      'avgSpeechSpeedCpm': avgSpeechSpeedCpm,
+      'totalFillerCount': totalFillerCount,
       'startedAt': Timestamp.fromDate(startedAt),
       'endedAt': Timestamp.fromDate(endedAt),
     });

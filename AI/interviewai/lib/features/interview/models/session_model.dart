@@ -46,6 +46,8 @@ class SessionSummary {
   final List<String> weakAreas;
   final DateTime startedAt;
   final DateTime endedAt;
+  final int avgSpeechSpeedCpm;
+  final int totalFillerCount;
 
   const SessionSummary({
     required this.sessionId,
@@ -56,6 +58,8 @@ class SessionSummary {
     required this.weakAreas,
     required this.startedAt,
     required this.endedAt,
+    this.avgSpeechSpeedCpm = 0,
+    this.totalFillerCount = 0,
   });
 
   factory SessionSummary.fromFirestore(
@@ -69,6 +73,8 @@ class SessionSummary {
         weakAreas: List<String>.from(data['weakAreas'] ?? []),
         startedAt: (data['startedAt'] as dynamic)?.toDate() ?? DateTime.now(),
         endedAt: (data['endedAt'] as dynamic)?.toDate() ?? DateTime.now(),
+        avgSpeechSpeedCpm: (data['avgSpeechSpeedCpm'] as num?)?.toInt() ?? 0,
+        totalFillerCount: (data['totalFillerCount'] as num?)?.toInt() ?? 0,
       );
 
   factory SessionSummary.fromLocal(Map<String, dynamic> data) =>
@@ -81,5 +87,7 @@ class SessionSummary {
         weakAreas: List<String>.from(data['weakAreas'] ?? []),
         startedAt: DateTime.tryParse(data['startedAt'] as String? ?? '') ?? DateTime.now(),
         endedAt: DateTime.tryParse(data['endedAt'] as String? ?? '') ?? DateTime.now(),
+        avgSpeechSpeedCpm: (data['avgSpeechSpeedCpm'] as num?)?.toInt() ?? 0,
+        totalFillerCount: (data['totalFillerCount'] as num?)?.toInt() ?? 0,
       );
 }
