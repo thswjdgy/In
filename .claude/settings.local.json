@@ -9,7 +9,10 @@
       "Bash(git push *)",
       "Bash(git pull *)",
       "Bash(gh run *)",
-      "Bash(curl -s https://thswjdgy.github.io/interviewai-presentation/)"
+      "Bash(curl -s https://thswjdgy.github.io/interviewai-presentation/)",
+      "PowerShell(git *)",
+      "PowerShell(Get-ChildItem C:\\\\project\\\\AI\\\\interviewai\\\\lib -Recurse -Depth 3 | Where-Object { -not $_.PSIsContainer } | Select-Object FullName, LastWriteTime | Sort-Object LastWriteTime -Descending | Select-Object -First 20)",
+      "PowerShell(Get-ChildItem C:\\\\project\\\\AI\\\\interviewai\\\\test -Recurse | Where-Object { -not $_.PSIsContainer })"
     ]
   }
 }
